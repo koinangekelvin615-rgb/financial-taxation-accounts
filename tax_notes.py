@@ -1,103 +1,93 @@
-from quiz import TOPIC_LABELS
+from typing import Dict, List, Optional
+from fastapi import APIRouter, HTTPException, Query
+from database import has_active_plan
 
-STUDY_NOTES: list[dict] = [
+router = APIRouter(prefix="/tax-notes", tags=["Tax Notes"])
+
+TAX_NOTES: List[Dict] = [
     {
-        "id": 1,
-        "topic_slug": "paye",
-        "title": "PAYE Basics, Allowable Deductions & Personal Relief",
-        "tax_year": "2026",
-        "summary": "How employment income is adjusted before applying PAYE tax bands and personal relief.",
+        "id": "paye-basics",
+        "title": "Pay As You Earn (PAYE) Overview",
+        "category": "Income Tax",
+        "is_premium": False,
+        "summary": "How employers deduct income tax from employee emoluments and remit it to KRA.",
         "key_points": [
-            "Allowable NSSF contributions are deducted before calculating tax on employment income.",
-            "Gross tax from PAYE bands is reduced by monthly personal relief (KES 2,400 standard) and any qualifying reliefs.",
-            "PAYE returns and payments are due on or before the 9th day of the following month.",
+            "Applies to employment income including salaries, wages, and taxable benefits.",
+            "Personal relief is deducted from gross tax liability before arriving at net PAYE.",
+            "Statutory deductions such as NSSF and Affordable Housing Levy follow specific rules.",
+            "Employers file and pay PAYE monthly via iTax by the 9th of the following month.",
         ],
     },
     {
-        "id": 2,
-        "topic_slug": "vat",
-        "title": "Output VAT, Input VAT & Monthly Filing Deadlines",
-        "tax_year": "2026",
-        "summary": "Calculating net VAT payable and distinguishing standard-rated, zero-rated, and exempt supplies.",
+        "id": "vat-kenya",
+        "title": "Value Added Tax (VAT) Essentials",
+        "category": "Indirect Tax",
+        "is_premium": True,
+        "summary": "Input vs. output VAT, taxable supplies, zero-rated vs. exempt supplies, and monthly filing.",
         "key_points": [
-            "Standard VAT rate on taxable supplies is 16%.",
-            "Net VAT payable = Output VAT charged on sales minus allowable Input VAT on taxable purchases.",
-            "Zero-rated supplies (0%) differ from exempt supplies in how input VAT is treated.",
-            "Monthly VAT returns and payments are due on or before the 20th day of the following month.",
+            "Output VAT is charged on taxable supplies; input VAT is tax incurred on eligible business purchases.",
+            "Zero-rated supplies are taxed at 0% (allowing input tax deduction), while exempt supplies do not.",
+            "VAT returns are typically due by the 20th day of the following month on iTax.",
+            "Accurate ETIMS / tax invoice records are essential for claiming input tax.",
         ],
     },
     {
-        "id": 3,
-        "topic_slug": "turnover-tax",
-        "title": "Turnover Tax (TOT) on Gross Business Sales",
-        "tax_year": "2026",
-        "summary": "Simplified tax rules for qualifying small businesses based on gross receipts.",
+        "id": "turnover-tax",
+        "title": "Turnover Tax (TOT) for Small Businesses",
+        "category": "SME Tax",
+        "is_premium": True,
+        "summary": "Simplified gross-receipts taxation for qualifying small businesses within statutory thresholds.",
         "key_points": [
-            "Turnover Tax is assessed on gross turnover/sales rather than net accounting profit.",
-            "Input VAT credits are not claimed against Turnover Tax.",
-            "Monthly TOT returns and payments are due on or before the 20th day of the following month.",
+            "Assessed on gross business sales/receipts rather than net profit.",
+            "Designed to simplify compliance for eligible micro and small enterprises.",
+            "Certain income streams (such as rental income, management/professional fees, and exempt businesses) have separate rules.",
         ],
     },
     {
-        "id": 4,
-        "topic_slug": "withholding-tax",
-        "title": "Withholding Tax (WHT) Deduction & Recordkeeping",
-        "tax_year": "2026",
-        "summary": "Deducting tax at source on qualifying payments and keeping proper supporting records.",
+        "id": "withholding-tax",
+        "title": "Withholding Tax (WHT) & Advance Tax",
+        "category": "Tax Collection",
+        "is_premium": True,
+        "summary": "Tax deducted at source on specified payments and remittal obligations.",
         "key_points": [
-            "Withholding tax is collected at source when paying qualifying amounts and remitted to the revenue authority.",
-            "Keep withholding tax certificates and payment records to reconcile tax deducted.",
-            "Accurate rate application prevents under-withholding penalties and interest.",
-        ],
-    },
-    {
-        "id": 5,
-        "topic_slug": "rental-income",
-        "title": "Residential Rental Income Tax Overview",
-        "tax_year": "2026",
-        "summary": "How monthly residential rental income is tracked and filed on iTax.",
-        "key_points": [
-            "Monthly residential rental income tax under the simplified regime is based on gross rent received.",
-            "Returns and payments are due on or before the 20th day of the following month.",
-            "Use iTax to file returns and generate payment slips accurately.",
-        ],
-    },
-    {
-        "id": 6,
-        "topic_slug": "tax-procedures",
-        "title": "Filing Deadlines, Penalties, Interest & Audit Records",
-        "tax_year": "2026",
-        "summary": "Core compliance habits for avoiding late penalties and supporting tax returns.",
-        "key_points": [
-            "Late filing or late payment after statutory deadlines can trigger penalties and/or interest.",
-            "Maintain complete invoices, receipts, and ledgers to substantiate figures on returns.",
-            "Verify current statutory rules and KRA guidance before classifying unusual transactions.",
+            "The payer withholds tax when making qualifying payments and remits it to KRA.",
+            "Withholding certificates serve as proof of tax deducted for the payee.",
+            "Late withholding or late remittance can trigger penalties and interest.",
         ],
     },
 ]
 
 
-def get_notes(topic: str = "all", query: str = "") -> list[dict]:
-    clean_topic = (topic or "all").strip().lower()
-    clean_query = (query or "").strip().lower()
+@router.get("")
+def list_tax_notes(email: Optional[str] = Query(default=None)):
+    active = has_active_plan(email) if email else False
+    items = []
+    for note in TAX_NOTES:
+        locked = note["is_premium"] and not active
+        items.append(
+            {
+                "id": note["id"],
+                "title": note["title"],
+                "category": note["category"],
+                "is_premium": note["is_premium"],
+                "locked": locked,
+                "summary": note["summary"],
+            }
+        )
+    return {"plan_active": active, "notes": items}
 
-    results: list[dict] = []
-    for note in STUDY_NOTES:
-        if clean_topic != "all" and note["topic_slug"] != clean_topic:
-            continue
-        haystack = " ".join(
-            [
-                note["title"],
-                note["summary"],
-                note["topic_slug"],
-                TOPIC_LABELS.get(note["topic_slug"], ""),
-                " ".join(note["key_points"]),
-            ]
-        ).lower()
-        if clean_query and clean_query not in haystack:
-            continue
 
-        item = dict(note)
-        item["topic_name"] = TOPIC_LABELS.get(item["topic_slug"], item["topic_slug"].upper())
-        results.append(item)
-    return results
+@router.get("/{note_id}")
+def get_tax_note(note_id: str, email: Optional[str] = Query(default=None)):
+    note = next((n for n in TAX_NOTES if n["id"] == note_id), None)
+    if not note:
+        raise HTTPException(status_code=404, detail="Tax note not found.")
+
+    active = has_active_plan(email) if email else False
+    if note["is_premium"] and not active:
+        raise HTTPException(
+            status_code=403,
+            detail="Active 30-day plan required to view this study note.",
+        )
+
+    return {**note, "locked": False}
