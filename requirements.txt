@@ -1,4 +1,6 @@
 fastapi
 uvicorn[standard]
-itsdangerous
+python-dotenv
+passlib[bcrypt]
+bcrypt
 python-multipart
