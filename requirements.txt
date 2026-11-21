@@ -4,3 +4,4 @@ python-dotenv
 passlib[bcrypt]
 bcrypt
 python-multipart
+email-validator
