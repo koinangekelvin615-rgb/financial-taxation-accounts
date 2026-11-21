@@ -1,7 +1,6 @@
-fastapi
-uvicorn[standard]
-python-dotenv
-passlib[bcrypt]
-bcrypt
+﻿fastapi
+uvicorn
+jinja2
 python-multipart
+itsdangerous
 email-validator
