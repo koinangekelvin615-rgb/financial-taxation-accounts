@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaxClass Kenya — Study Notes, Quiz &amp; Subscriptions</title>
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --card: #ffffff;
+      --ink: #16211c;
+      --muted: #55655e;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --warn: #b45309;
+      --warn-bg: #fef3c7;
+      --ok-bg: #dcfce7;
+      --ok: #166534;
+      --err-bg: #fee2e2;
+      --err: #991b1b;
+      --border: #dce5e0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    header {
+      background: var(--accent);
+      color: #ffffff;
+      padding: 18px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    header p {
+      margin: 2px 0 0;
+      font-size: 0.9rem;
+      opacity: 0.92;
+    }
+
+    .session-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    main {
+      max-width: 1060px;
+      margin: 24px auto;
+      padding: 0 16px 40px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 8px 0 4px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 9px 14px;
+      border: none;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--accent-dark); }
+
+    button.secondary {
+      background: #e6eeea;
+      color: var(--ink);
+    }
+
+    button.secondary:hover { background: #d5e2db; }
+
+    .row-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .status-box {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .status-box.ok { display: block; background: var(--ok-bg); color: var(--ok); }
+    .status-box.err { display: block; background: var(--err-bg); color: var(--err); }
+    .status-box.warn { display: block; background: var(--warn-bg); color: var(--warn); }
+
+    .note-item, .question-item, .payment-row {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      background: #fafcfb;
+    }
+
+    .note-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .tag.free { background: var(--ok-bg); color: var(--ok); }
+    .tag.locked { background: var(--warn-bg); color: var(--warn); }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 400;
+      margin: 6px 0;
+      cursor: pointer;
+    }
+
+    .option-label input { width: auto; margin: 0; }
+
+    .muted { color: var(--muted); font-size: 0.86rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>TaxClass Kenya</h1>
+      <p>Kenyan Tax Study Notes, Practice Quiz &amp; 30-Day M-Pesa Subscriptions</p>
+    </div>
+    <div class="session-bar">
+      <span id="userBadge" class="badge">Not logged in</span>
+      <span id="subBadge" class="badge">Sub: Inactive</span>
+      <button type="button" class="secondary" style="margin-top:0" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="globalAlert" class="status-box"></div>
+
+    <div class="grid-2">
+      <section class="card">
+        <h2>Student / Admin Account</h2>
+        <label for="authMode">Action</label>
+        <select id="authMode" onchange="toggleAuthFields()">
+          <option value="login">Login</option>
+          <option value="register">Register Student</option>
+          <option value="admin-register">Register Admin (Setup Key Required)</option>
+        </select>
+
+        <div id="nameField" style="display:none;">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" type="text" placeholder="Kelvin Koinange" />
+        </div>
+
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="name@example.com" />
+
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Enter password" />
+
+        <div id="adminLoginToggle">
+          <label class="option-label">
+            <input id="isAdminLogin" type="checkbox" /> Log in as Admin account
+          </label>
+        </div>
+
+        <div id="setupKeyField" style="display:none;">
+          <label for="setupKey">Admin Setup Key</label>
+          <input id="setupKey" type="text" placeholder="Enter TAXCLASS_ADMIN_SETUP_KEY" />
+        </div>
+
+        <button type="button" onclick="submitAuth()">Continue</button>
+      </section>
+
+      <section class="card">
+        <h2>30-Day Subscription &amp; M-Pesa</h2>
+        <p id="mpesaInstructions" class="muted">Loading M-Pesa payment instructions...</p>
+
+        <label for="mpesaCode">M-Pesa Transaction Code</label>
+        <input id="mpesaCode" type="text" placeholder="e.g. TKL9876543" />
+
+        <label for="amountKes">Amount (KES)</label>
+        <input id="amountKes" type="number" value="500" />
+
+        <div class="row-btns">
+          <button type="button" onclick="submitPayment()">Submit Payment</button>
+          <button type="button" class="secondary" onclick="loadPaymentStatus()">Check My Status</button>
+        </div>
+
+        <div id="paymentStatusOutput" class="muted" style="margin-top:10px;"></div>
+      </section>
+    </div>
+
+    <section id="adminPanel" class="card" style="display:none;">
+      <h2>Admin Payment Verification</h2>
+      <div class="row-btns">
+        <button type="button" onclick="loadPendingPayments()">Refresh Pending Payments</button>
+      </div>
+      <div id="pendingPaymentsList"></div>
+    </section>
+
+    <section class="card">
+      <div class="row-btns" style="justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Study Notes</h2>
+        <button type="button" class="secondary" style="margin-top:0" onclick="loadNotes()">Load Notes</button>
+      </div>
+      <p class="muted">Log in to view free preview notes; activate a 30-day subscription (or log in as admin) to unlock all notes.</p>
+      <div id="notesList"></div>
+    </section>
+
+    <section class="card">
+      <div class="row-btns" style="justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Practice Quiz</h2>
+        <button type="button" class="secondary" style="margin-top:0" onclick="loadQuiz()">Load Questions</button>
+      </div>
+      <div id="quizList"></div>
+      <button id="submitQuizBtn" type="button" style="display:none;" onclick="submitQuiz()">Submit Quiz</button>
+      <div id="quizResult" style="margin-top:12px;"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      token: localStorage.getItem("tc_token") || "",
+      role: localStorage.getItem("tc_role") || "",
+      email: localStorage.getItem("tc_email") || "",
+      questions: []
+    };
+
+    function formatErrorDetail(detail, fallbackStatus) {
+      if (typeof detail === "string" && detail.trim()) {
+        return detail;
+      }
+      if (Array.isArray(detail) && detail.length > 0) {
+        return detail
+          .map(item => {
+            if (typeof item === "string") return item;
+            const field = Array.isArray(item.loc) ? item.loc.slice(1).join(".") : "";
+            return field ? `${field}: ${item.msg || "invalid value"}` : (item.msg || JSON.stringify(item));
+          })
+          .join(" | ");
+      }
+      if (detail && typeof detail === "object") {
+        return detail.msg || detail.message || JSON.stringify(detail);
+      }
+      return `Request failed (${fallbackStatus})`;
+    }
+
+    function showAlert(message, type = "ok") {
+      const box = document.getElementById("globalAlert");
+      box.textContent = typeof message === "string" ? message : JSON.stringify(message);
+      box.className = `status-box ${type}`;
+    }
+
+    function updateHeader() {
+      const userBadge = document.getElementById("userBadge");
+      const adminPanel = document.getElementById("adminPanel");
+
+      if (state.token) {
+        userBadge.textContent = `${state.role || "user"}: ${state.email || "signed in"}`;
+      } else {
+        userBadge.textContent = "Not logged in";
+      }
+
+      adminPanel.style.display = state.role === "admin" ? "block" : "none";
+    }
+
+    function setSubscriptionBadge(active, expiresAt) {
+      const subBadge = document.getElementById("subBadge");
+      if (active) {
+        const shortDate = expiresAt ? String(expiresAt).slice(0, 10) : "Active";
+        subBadge.textContent = `Sub: Active (until ${shortDate})`;
+      } else {
+        subBadge.textContent = "Sub: Inactive";
+      }
+    }
+
+    function toggleAuthFields() {
+      const mode = document.getElementById("authMode").value;
+      document.getElementById("nameField").style.display = mode !== "login" ? "block" : "none";
+      document.getElementById("adminLoginToggle").style.display = mode === "login" ? "block" : "none";
+      document.getElementById("setupKeyField").style.display = mode === "admin-register" ? "block" : "none";
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
+      if (state.token) {
+        headers["Authorization"] = `Bearer ${state.token}`;
+      }
+      const res = await fetch(path, Object.assign({}, options, { headers }));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(formatErrorDetail(data.detail ?? data.message, res.status));
+      }
+      return data;
+    }
+
+    async function submitAuth() {
+      const mode = document.getElementById("authMode").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const fullName = document.getElementById("fullName").value.trim();
+      const isAdminLogin = document.getElementById("isAdminLogin").checked;
+      const setupKey = document.getElementById("setupKey").value;
+
+      try {
+        let url = "/students/login";
+        let payload = { email, password };
+
+        if (mode === "register") {
+          url = "/students/register";
+          payload = { full_name: fullName, email, password };
+        } else if (mode === "admin-register") {
+          url = "/admin/register";
+          payload = { full_name: fullName, email, password, setup_key: setupKey };
+        } else if (isAdminLogin) {
+          url = "/admin/login";
+        }
+
+        const data = await apiFetch(url, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        const account = data.user || data.admin || {};
+        state.token = data.access_token || "";
+        state.role = account.role || (url.includes("admin") ? "admin" : "student");
+        state.email = account.email || email;
+
+        localStorage.setItem("tc_token", state.token);
+        localStorage.setItem("tc_role", state.role);
+        localStorage.setItem("tc_email", state.email);
+
+        updateHeader();
+        setSubscriptionBadge(Boolean(data.subscription_active), data.subscription_expires_at);
+        showAlert(data.message || "Authenticated successfully.", "ok");
+
+        if (state.role === "admin") {
+          await loadPendingPayments();
+        } else {
+          await loadPaymentStatus();
+        }
+        await loadNotes();
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    function logout() {
+      state.token = "";
+      state.role = "";
+      state.email = "";
+      localStorage.removeItem("tc_token");
+      localStorage.removeItem("tc_role");
+      localStorage.removeItem("tc_email");
+      updateHeader();
+      setSubscriptionBadge(false, null);
+      document.getElementById("paymentStatusOutput").textContent = "";
+      document.getElementById("notesList").innerHTML = `<p class="muted">Sign in above to view your available study notes.</p>`;
+      showAlert("Logged out.", "warn");
+    }
+
+    async function loadInstructions() {
+      try {
+        const data = await apiFetch("/payments/instructions");
+        const number = data.mpesa_number || data.phone_number || data.till_number || data.paybill || "Configured on server";
+        const days = data.duration_days || data.plan_days || data.days || 30;
+        const amount = data.amount_kes || data.price_kes || 500;
+        const text = data.instructions || data.message || `Send KSh ${amount} via M-Pesa and submit your transaction code.`;
+        document.getElementById("mpesaInstructions").textContent =
+          `${text} (Number: ${number}, Plan: ${days} days)`;
+      } catch (err) {
+        document.getElementById("mpesaInstructions").textContent = "Could not load payment instructions.";
+      }
+    }
+
+    async function submitPayment() {
+      if (!state.token) {
+        showAlert("Please log in as a student first.", "warn");
+        return;
+      }
+      const mpesa_code = document.getElementById("mpesaCode").value.trim();
+      const amount_kes = Number(document.getElementById("amountKes").value);
+
+      try {
+        const data = await apiFetch("/payments/submit", {
+          method: "POST",
+          body: JSON.stringify({ mpesa_code, amount_kes })
+        });
+        showAlert(`${data.message || "Payment submitted."} (Code: ${data.mpesa_code || mpesa_code})`, "ok");
+        await loadPaymentStatus();
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function loadPaymentStatus() {
+      if (!state.token || state.role === "admin") return;
+      try {
+        const data = await apiFetch("/payments/my-status");
+        setSubscriptionBadge(data.subscription_active, data.subscription_expires_at);
+        const latest = data.payments && data.payments[0];
+        document.getElementById("paymentStatusOutput").textContent = latest
+          ? `Latest payment: ${latest.mpesa_code} — ${String(latest.status).toUpperCase()} (KES ${latest.amount_kes})`
+          : "No payment submissions yet.";
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function loadPendingPayments() {
+      if (state.role !== "admin") return;
+      const container = document.getElementById("pendingPaymentsList");
+      try {
+        const data = await apiFetch("/admin/payments/pending");
+        if (!data.payments || data.payments.length === 0) {
+          container.innerHTML = `<p class="muted">No pending M-Pesa payments right now.</p>`;
+          return;
+        }
+        container.innerHTML = data.payments.map(p => `
+          <div class="payment-row">
+            <strong>#${p.id} — ${p.mpesa_code}</strong> (KES ${p.amount_kes})<br/>
+            <span class="muted">Student: ${p.full_name} (${p.email})</span>
+            <div class="row-btns">
+              <button type="button" onclick="verifyPayment(${p.id})">Verify (30 Days)</button>
+              <button type="button" class="secondary" onclick="rejectPayment(${p.id})">Reject</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function verifyPayment(paymentId) {
+      try {
+        const res = await apiFetch(`/admin/payments/${paymentId}/verify`, { method: "POST" });
+        showAlert(res.message || "Payment verified.", "ok");
+        await loadPendingPayments();
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function rejectPayment(paymentId) {
+      try {
+        const res = await apiFetch(`/admin/payments/${paymentId}/reject`, { method: "POST" });
+        showAlert(res.message || "Payment rejected.", "warn");
+        await loadPendingPayments();
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function loadNotes() {
+      const container = document.getElementById("notesList");
+      if (!state.token) {
+        container.innerHTML = `<p class="muted">Sign in above to view your available study notes.</p>`;
+        return;
+      }
+      try {
+        const data = await apiFetch("/notes/");
+        setSubscriptionBadge(data.has_full_access, data.subscription_expires_at);
+        container.innerHTML = (data.notes || []).map(n => `
+          <article class="note-item">
+            <div class="note-head">
+              <div>
+                <span class="muted">${n.topic || "General"}</span>
+                <h3 style="margin:2px 0 0; font-size:1rem;">${n.title}</h3>
+              </div>
+              <span class="tag ${n.unlocked ? "free" : "locked"}">
+                ${n.is_free ? "FREE" : (n.unlocked ? "UNLOCKED" : "LOCKED")}
+              </span>
+            </div>
+            <p style="margin:8px 0 0;">${n.content}</p>
+          </article>
+        `).join("");
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function loadQuiz() {
+      const container = document.getElementById("quizList");
+      const submitBtn = document.getElementById("submitQuizBtn");
+      document.getElementById("quizResult").innerHTML = "";
+
+      try {
+        const data = await apiFetch("/quiz/questions");
+        state.questions = data.questions || [];
+        if (state.questions.length === 0) {
+          container.innerHTML = `<p class="muted">No quiz questions available.</p>`;
+          submitBtn.style.display = "none";
+          return;
+        }
+
+        container.innerHTML = state.questions.map(q => `
+          <div class="question-item">
+            <span class="muted">${q.topic || "Tax Quiz"}</span>
+            <p style="margin:4px 0 8px;"><strong>Q${q.id}. ${q.question}</strong></p>
+            ${(q.options || []).map(opt => {
+              const letter = String(opt).trim().charAt(0).toUpperCase();
+              return `
+                <label class="option-label">
+                  <input type="radio" name="q_${q.id}" value="${letter}" />
+                  <span>${opt}</span>
+                </label>
+              `;
+            }).join("")}
+          </div>
+        `).join("");
+
+        submitBtn.style.display = "inline-block";
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    async function submitQuiz() {
+      const answers = {};
+      for (const q of state.questions) {
+        const chosen = document.querySelector(`input[name="q_${q.id}"]:checked`);
+        if (chosen) {
+          answers[q.id] = chosen.value;
+        }
+      }
+
+      try {
+        const res = await apiFetch("/quiz/submit", {
+          method: "POST",
+          body: JSON.stringify({ answers })
+        });
+        document.getElementById("quizResult").innerHTML = `
+          <div class="status-box ok">
+            <strong>Score: ${res.score} / ${res.total} (${res.percentage}%)</strong>
+          </div>
+        `;
+      } catch (err) {
+        showAlert(err.message, "err");
+      }
+    }
+
+    updateHeader();
+    loadInstructions();
+    loadQuiz();
+    if (state.token) {
+      loadNotes();
+      if (state.role === "admin") {
+        loadPendingPayments();
+      } else {
+        loadPaymentStatus();
+      }
+    } else {
+      document.getElementById("notesList").innerHTML = `<p class="muted">Sign in above to view your available study notes.</p>`;
+    }
+  </script>
+</html>

@@ -1,60 +1,92 @@
-﻿import os
+﻿
+import os
+import sqlite3
+
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
-from database import activate_plan, get_or_create_user, record_payment
+from pydantic import BaseModel, EmailStr, Field
+
+from database import get_user_by_email, get_connection
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
-MPESA_NUMBER = os.getenv("TAXCLASS_MPESA_NUMBER", "0700566525")
-PLAN_PRICE_KES = int(os.getenv("TAXCLASS_PLAN_PRICE_KES", "500"))
-PLAN_DAYS = int(os.getenv("TAXCLASS_PLAN_DAYS", "30"))
+MPESA_NUMBER = os.getenv(
+    "TAXCLASS_MPESA_NUMBER",
+    "0700566525"
+)
 
+PLAN_PRICE = 500
+PLAN_DURATION_DAYS = 30
 
-class PaymentSubmitRequest(BaseModel):
+class PaymentSubmission(BaseModel):
     email: EmailStr
-    mpesa_code: str
-    amount_kes: int = PLAN_PRICE_KES
-
+    mpesa_code: str = Field(min_length=8, max_length=20)
+    amount_kes: int = Field(gt=0)
 
 @router.get("/instructions")
 def payment_instructions():
     return {
-        "mpesa_number": MPESA_NUMBER,
-        "amount_kes": PLAN_PRICE_KES,
-        "duration_days": PLAN_DAYS,
-        "message": f"Send KES {PLAN_PRICE_KES} to {MPESA_NUMBER} for {PLAN_DAYS} days of TaxClass Kenya access.",
+        "payment_method": "M-Pesa",
+        "paybill_or_phone": MPESA_NUMBER,
+        "amount_kes": PLAN_PRICE,
+        "subscription_duration": PLAN_DURATION_DAYS,
+        "currency": "KES",
+        "instructions": (
+            "Send KSh 500 using the displayed M-Pesa number. "
+            "Submit your transaction code for verification."
+        )
     }
-
 
 @router.post("/submit")
-def submit_payment(payload: PaymentSubmitRequest):
-    if payload.amount_kes < PLAN_PRICE_KES:
+def submit_payment(payment: PaymentSubmission):
+
+    if payment.amount_kes != PLAN_PRICE:
         raise HTTPException(
             status_code=400,
-            detail=f"Minimum payment is KES {PLAN_PRICE_KES} for {PLAN_DAYS} days.",
+            detail=f"Please submit the exact amount of KSh {PLAN_PRICE}."
         )
 
-    record = record_payment(
-        email=payload.email,
-        mpesa_code=payload.mpesa_code,
-        amount_kes=payload.amount_kes,
-        status="activated",
-    )
-    user = activate_plan(payload.email, days=PLAN_DAYS)
+    user = get_user_by_email(str(payment.email))
 
-    return {
-        "status": "success",
-        "plan_days": PLAN_DAYS,
-        "expires_at": user["plan_expires_at"].isoformat(),
-        "payment": record,
-    }
+    if not user or user["role"] != "student":
+        raise HTTPException(
+            status_code=404,
+            detail="Student account not found."
+        )
 
+    connection = get_connection()
 
-@router.get("/status/{email}")
-def check_status(email: str):
-    user = get_or_create_user(email)
-    return {
-        "email": user["email"],
-        "plan_active": user["plan_active"],
-        "expires_at": user["plan_expires_at"].isoformat() if user["plan_expires_at"] else None,
-    }
+    try:
+        cursor = connection.execute(
+            """
+            INSERT INTO payments (
+                user_id,
+                mpesa_code,
+                amount_kes,
+                status
+            )
+            VALUES (?, ?, ?, 'pending')
+            """,
+            (
+                user["id"],
+                payment.mpesa_code.strip().upper(),
+                payment.amount_kes
+            )
+        )
+
+        connection.commit()
+
+        return {
+            "message": "Payment submitted successfully.",
+            "payment_id": cursor.lastrowid,
+            "status": "pending",
+            "note": "Your payment must be verified before subscription activation."
+        }
+
+    except sqlite3.IntegrityError:
+        raise HTTPException(
+            status_code=409,
+            detail="This M-Pesa transaction code has already been submitted."
+        )
+
+    finally:
+        connection.close()
